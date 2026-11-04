@@ -23,9 +23,8 @@ commands. Setuptools and wheel are not explicitly installed.
 Its virtual environment is not on `PATH`, so examples use absolute paths. The
 image inherits the Python base image's default command.
 
-The health check verifies that the Checkov CLI starts; it does not run a scan or
-check an HTTP service. Bind-mounted scan targets must be readable by the
-container's non-root user.
+The image does not define a Docker health check. Bind-mounted scan targets must
+be readable by the container's non-root user.
 
 ## Build and verify
 
@@ -48,7 +47,8 @@ manual runs in this order:
 2. Lint the root `Dockerfile` with Hadolint `2.15.1`.
 3. Scan it using the official Checkov `3.4.3` image.
 4. Scan it with Semgrep `1.183.0` and the `p/dockerfile` ruleset.
-5. Scan its configuration with Trivy `0.76.1`.
+5. Scan its configuration with Trivy `0.76.1`, using the repository's narrow
+   Rego ignore policy for the intentionally omitted health check.
 6. Build the Docker image as `checkov:build` if all scans pass.
 7. Tag the built image as `checkov:<latest-git-tag>` and `checkov:latest`.
 8. Scan the built image's OS and application dependencies with Trivy.

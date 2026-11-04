@@ -1,8 +1,7 @@
 FROM python:3.13-alpine
 
-RUN apk upgrade --no-cache
-
-RUN python3 -m pip install --no-cache-dir \
+RUN apk upgrade --no-cache \
+    && python3 -m pip install --no-cache-dir \
         --upgrade pip==26.3 setuptools==84.1.0
 
 COPY requirements.txt /tmp/requirements.txt
@@ -21,6 +20,3 @@ RUN addgroup --gid 10001 --system checkov \
     && chown checkov:checkov /home/checkov
 
 USER 10001:10001
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD ["/tmp/checkov-venv/bin/checkov", "--version"]
