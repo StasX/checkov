@@ -1,8 +1,6 @@
-FROM python:3.13-slim
+FROM python:3.13-alpine
 
-RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk upgrade --no-cache
 
 RUN python3 -m pip install --no-cache-dir \
         --upgrade pip==26.3 setuptools==84.1.0
@@ -16,8 +14,11 @@ RUN python3 -m venv /tmp/checkov-venv \
         --upgrade --upgrade-strategy eager -r /tmp/requirements.txt \
     && /tmp/checkov-venv/bin/python -m pip check
 
-RUN groupadd --gid 10001 checkov \
-    && useradd --no-log-init --uid 10001 --gid 10001 --create-home checkov
+RUN addgroup --gid 10001 --system checkov \
+    && adduser --uid 10001 --system --ingroup checkov --home /home/checkov \
+        --no-create-home checkov \
+    && mkdir -p /home/checkov \
+    && chown checkov:checkov /home/checkov
 
 USER 10001:10001
 
