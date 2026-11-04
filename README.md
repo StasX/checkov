@@ -9,10 +9,16 @@ This project is focused on Checkov only.
 | --- | --- |
 | Base image | `python:3.13` |
 | Checkov | `3.4.3`, installed from `requirements.txt` in `/tmp/checkov-venv` |
+| Runtime user | Non-root `checkov` user (UID/GID `10001`) with a home directory |
+| Health check | Runs `checkov --version` every 30 seconds |
 
 Checkov is pinned in `requirements.txt`; transitive dependencies are not locked.
 Its virtual environment is not on `PATH`, so examples use absolute paths. The
 image inherits the Python base image's default command.
+
+The health check verifies that the Checkov CLI starts; it does not run a scan or
+check an HTTP service. Bind-mounted scan targets must be readable by the
+container's non-root user.
 
 ## Build and verify
 
@@ -40,10 +46,20 @@ manual runs in this order:
 7. Tag the built image as `checkov:<latest-git-tag>` and `checkov:latest`.
 8. Scan the built image's OS and application dependencies with Trivy.
 9. Log in and push both tags to Docker Hub (eligible runs only).
+10. Upload available scan reports and build artifacts, even if previous steps fail.
 
 Later scanners run even when an earlier scanner fails, provided checkout
 succeeded and the run was not cancelled. Findings or scanner errors fail the
 workflow. No checks are skipped or suppressed.
+
+Download `checkov-reports-<run-id>-<attempt>` from the run's **Artifacts** section.
+It is retained for 14 days and contains text logs for Hadolint, Checkov, Semgrep,
+the Trivy Dockerfile scan, and (when reached) the image build and Trivy image
+scan. Built-image metadata is included as `image-metadata.json`. Skipped steps
+have no report. Credentials and Docker login output are not included.
+
+Logs remain visible in the Actions console. Bash `pipefail` preserves scanner
+and build failures when output is copied into artifact files with `tee`.
 
 Semgrep uses strict mode, so parsing warnings also fail its step. The Dockerfile
 uses LF line endings, enforced by `.gitattributes`, for consistent parsing.

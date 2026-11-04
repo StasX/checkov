@@ -21,6 +21,7 @@ not a web application or a service.
   version-name tag, or `0` when no Git tags exist, plus `latest`.
   Trivy scans the built image for vulnerabilities before publishing both tags to
   Docker Hub on default-branch or Git-tag runs. Pull requests never publish images.
+  Uploads available scanner logs, build log, and image metadata even on failures.
 
 ## Working conventions
 
