@@ -8,6 +8,7 @@ CLAUDE.local.md
 *.pem
 *.key
 .venv
+.venv-*
 venv
 **/__pycache__
 **/*.py[cod]
@@ -20,3 +21,5 @@ htmlcov
 .coverage
 .idea
 .vscode
+Dockerfile
+.dockerignore

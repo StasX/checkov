@@ -2,13 +2,14 @@
 
 ## Purpose and scope
 
-Build a reusable Python Docker image containing Python-based static analysis
-tools. Checkov is the first installed tool. This repository is a tooling image,
+Build a reusable Python Docker image for Checkov infrastructure-as-code security
+scanning. Keep this project focused on Checkov. This repository is a tooling image,
 not a web application or a service.
 
 ## Repository map
 
 - `Dockerfile`: Python base image and tool installation.
+- `requirements.txt`: pinned Checkov dependency installed by Docker.
 - `README.md`: supported tools, build/run commands, and current limitations.
 - `.dockerignore`: files excluded from the image build context.
 - `AGENTS.md`: shared instructions for coding assistants.
@@ -18,13 +19,12 @@ not a web application or a service.
 ## Working conventions
 
 - Keep changes focused on the requested task and preserve existing user changes.
-- Keep the image usable with multiple command-line tools. Do not make one scanner
-  the mandatory entrypoint without a task requiring it.
-- Install Python tools in virtual environments. When adding tools, check Python
-  compatibility and dependency conflicts; use separate environments if necessary.
+- Keep the Dockerfile at the repository root.
+- Install Checkov in a virtual environment and check Python compatibility when
+  updating it. Do not add unrelated scanners unless the user changes the scope.
 - Prefer explicit tool versions for reproducibility. Do not invent versions or
   claim compatibility without checking and validating it.
-- Update README commands and the tool list when image behavior changes.
+- Update README commands when image behavior changes.
 - Never add credentials, API keys, local scan targets, or generated scan reports.
 - Keep machine-specific paths and personal assistant settings out of shared files.
 - No OpenAI API integration is needed to build or use this image.
@@ -35,10 +35,10 @@ For documentation-only changes, check links, command consistency, and whitespace
 For Docker or dependency changes, build and smoke-test the affected tools:
 
 ```sh
-docker build -t python-sat:dev .
-docker run --rm python-sat:dev python --version
-docker run --rm python-sat:dev /tmp/checkov-venv/bin/pip check
-docker run --rm python-sat:dev /tmp/checkov-venv/bin/checkov --version
+docker build -t checkov:dev .
+docker run --rm checkov:dev python --version
+docker run --rm checkov:dev /tmp/checkov-venv/bin/pip check
+docker run --rm checkov:dev /tmp/checkov-venv/bin/checkov --version
 git diff --check
 ```
 

@@ -1,16 +1,16 @@
-# Python static analysis tools image
+# Checkov Docker image
 
-A Python-based Docker image for running static analysis tools. Checkov is the
-first installed tool; additional Python-based tools can be added as needed.
+A Python-based Docker image for Checkov infrastructure-as-code security scanning.
+This project is focused on Checkov only.
 
 ## Current contents
 
 | Component | Configuration |
 | --- | --- |
 | Base image | `python:3.13` |
-| Checkov | Installed from PyPI in `/tmp/checkov-venv` |
+| Checkov | `3.4.3`, installed from `requirements.txt` in `/tmp/checkov-venv` |
 
-Checkov is currently unpinned. Builds may resolve different versions over time.
+Checkov is pinned in `requirements.txt`; transitive dependencies are not locked.
 Its virtual environment is not on `PATH`, so examples use absolute paths. The
 image inherits the Python base image's default command.
 
@@ -20,10 +20,10 @@ Docker must be installed and running with Linux container support. Building
 requires access to the base image registry and Python package index.
 
 ```sh
-docker build -t python-sat:dev .
-docker run --rm python-sat:dev python --version
-docker run --rm python-sat:dev /tmp/checkov-venv/bin/pip check
-docker run --rm python-sat:dev /tmp/checkov-venv/bin/checkov --version
+docker build -t checkov:dev .
+docker run --rm checkov:dev python --version
+docker run --rm checkov:dev /tmp/checkov-venv/bin/pip check
+docker run --rm checkov:dev /tmp/checkov-venv/bin/checkov --version
 ```
 
 ## Scan a directory
@@ -33,13 +33,13 @@ Mount the directory to scan read-only at `/workspace`.
 PowerShell, from the directory you want to scan:
 
 ```powershell
-docker run --rm --mount "type=bind,source=$($PWD.Path),target=/workspace,readonly" python-sat:dev /tmp/checkov-venv/bin/checkov -d /workspace
+docker run --rm --mount "type=bind,source=$($PWD.Path),target=/workspace,readonly" checkov:dev /tmp/checkov-venv/bin/checkov -d /workspace
 ```
 
 POSIX shell:
 
 ```sh
-docker run --rm --mount "type=bind,source=$(pwd),target=/workspace,readonly" python-sat:dev /tmp/checkov-venv/bin/checkov -d /workspace
+docker run --rm --mount "type=bind,source=$(pwd),target=/workspace,readonly" checkov:dev /tmp/checkov-venv/bin/checkov -d /workspace
 ```
 
 Scanner findings can produce a nonzero exit code. Review the output before
@@ -54,8 +54,8 @@ This follows the repository instruction convention described in the
 
 Give Codex a concrete task and the expected outcome, for example:
 
-> Add a Python static analysis tool to the image, document its invocation, and
-> build and smoke-test it. Check for dependency conflicts with Checkov.
+> Update the pinned Checkov version, document any behavior changes, and
+> build and smoke-test the image.
 
 Keep Codex authentication and personal configuration outside the repository.
 No OpenAI API key is required by this Docker image.
@@ -86,6 +86,6 @@ the shared guidance, not a Claude-style automatic import.
 
 ## Next improvements
 
-- Select and pin supported tool versions.
+- Lock transitive dependencies for reproducible builds.
 - Make tool commands available on `PATH`.
-- Add smoke-test automation as the tool list grows.
+- Add automated Checkov smoke tests.

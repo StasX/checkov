@@ -1,0 +1,2 @@
+# Checkov version used by the Docker image. Transitive dependencies are not locked.
+checkov==3.4.3
