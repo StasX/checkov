@@ -28,7 +28,7 @@ docker run --rm checkov:dev /tmp/checkov-venv/bin/checkov --version
 
 ## Continuous integration
 
-[GitHub Actions](.github/workflows/ci.yml) runs on pushes, pull requests, and
+[GitHub Actions](.github/workflows/main.yml) runs on pushes, pull requests, and
 manual runs in this order:
 
 1. Check out the repository.
