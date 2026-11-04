@@ -2,7 +2,8 @@ FROM python:3.13-alpine
 
 RUN apk upgrade --no-cache \
     && python3 -m pip install --no-cache-dir \
-        --upgrade pip==26.3 setuptools==84.1.0
+        --upgrade pip==26.3 \
+    && python3 -m pip uninstall --yes setuptools
 
 COPY requirements.txt /tmp/requirements.txt
 
