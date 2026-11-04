@@ -1,15 +1,17 @@
-FROM python:3.13
+FROM python:3.13-slim
 
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/*
 
-RUN python3 -m pip install --no-cache-dir --upgrade pip==26.3
+RUN python3 -m pip install --no-cache-dir \
+        --upgrade pip==26.3 setuptools==84.1.0
 
 COPY requirements.txt /tmp/requirements.txt
 
 RUN python3 -m venv /tmp/checkov-venv \
-    && /tmp/checkov-venv/bin/python -m pip install --no-cache-dir --upgrade pip==26.3 \
+    && /tmp/checkov-venv/bin/python -m pip install --no-cache-dir \
+        --upgrade pip==26.3 setuptools==84.1.0 \
     && /tmp/checkov-venv/bin/python -m pip install --no-cache-dir \
         --upgrade --upgrade-strategy eager -r /tmp/requirements.txt \
     && /tmp/checkov-venv/bin/python -m pip check
