@@ -26,6 +26,62 @@ docker run --rm checkov:dev /tmp/checkov-venv/bin/pip check
 docker run --rm checkov:dev /tmp/checkov-venv/bin/checkov --version
 ```
 
+## Continuous integration
+
+[GitHub Actions](.github/workflows/ci.yml) runs on pushes, pull requests, and
+manual runs in this order:
+
+1. Check out the repository.
+2. Lint the root `Dockerfile` with Hadolint `2.15.1`.
+3. Scan it using the official Checkov `3.4.3` image.
+4. Scan it with Semgrep `1.183.0` and the `p/dockerfile` ruleset.
+5. Scan its configuration with Trivy `0.76.1`.
+6. Build the Docker image as `checkov:build` if all scans pass.
+7. Tag the built image as `checkov:<latest-git-tag>` and `checkov:latest`.
+8. Scan the built image's OS and application dependencies with Trivy.
+9. Log in and push both tags to Docker Hub (eligible runs only).
+
+Later scanners run even when an earlier scanner fails, provided checkout
+succeeded and the run was not cancelled. Findings or scanner errors fail the
+workflow. No checks are skipped or suppressed.
+
+Semgrep uses strict mode, so parsing warnings also fail its step. The Dockerfile
+uses LF line endings, enforced by `.gitattributes`, for consistent parsing.
+
+Each scanner runs in a separate container; the project image still contains only
+Checkov. Trivy first scans Dockerfile misconfigurations and later scans the built
+image for vulnerabilities at all severities, including those without fixes.
+Image vulnerabilities or scanner errors block publishing.
+Semgrep downloads its registry rules and Trivy may download updated checks, so
+these scans require network access and rules may change independently of tool
+versions.
+
+Checkout fetches all history and tags. The tagging step selects the highest tag
+using Git's version-name sort (`git tag --sort=-version:refname`), not the newest
+tag by creation date or a GitHub Release's `latest` designation. For example,
+`v1.10.0` sorts ahead of `v1.9.0`, producing `checkov:v1.10.0`. Tag names must be
+valid Docker tags. If the repository has no tags, the image uses version `0`
+(`checkov:0`). This fallback does not create a Git tag. The same image also gets
+the `checkov:latest` tag in every successful build.
+
+The image contains the checked-out commit, including on branch and pull-request
+runs; the version tag is used as a label, not as a different source checkout.
+Published images are tagged as `docker.io/<dockerhub-username>/checkov:<version>`
+and `docker.io/<dockerhub-username>/checkov:latest`.
+
+Publishing runs only after every scan passes, on default-branch and Git-tag runs.
+Manual runs must target the default branch or a tag to publish. Pull requests and
+other branches build and scan without publishing.
+
+In GitHub repository **Settings > Secrets and variables > Actions**, add:
+
+- `DOCKERHUB_USERNAME`: your Docker Hub username.
+- `DOCKERHUB_TOKEN`: a Docker Hub access token with permission to push images.
+
+Create the `checkov` repository under that Docker Hub account and make sure the
+token can push to it. See Docker's [access token documentation](https://docs.docker.com/security/access-tokens/).
+GitHub hosts the workflow; Docker Hub stores the published images.
+
 ## Scan a directory
 
 Mount the directory to scan read-only at `/workspace`.
@@ -88,4 +144,3 @@ the shared guidance, not a Claude-style automatic import.
 
 - Lock transitive dependencies for reproducible builds.
 - Make tool commands available on `PATH`.
-- Add automated Checkov smoke tests.

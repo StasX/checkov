@@ -1,0 +1,2 @@
+# Keep Dockerfile continuations compatible with scanner parsers on every OS.
+Dockerfile text eol=lf

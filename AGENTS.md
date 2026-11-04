@@ -15,6 +15,12 @@ not a web application or a service.
 - `AGENTS.md`: shared instructions for coding assistants.
 - `CLAUDE.md`: Claude Code entry point importing the shared instructions.
 - `.github/copilot-instructions.md`: Copilot entry point referencing this file.
+- `.github/workflows/ci.yml`: checkout, then Hadolint, Checkov, Semgrep, and Trivy
+  scans of the Dockerfile. Additional CI scanners run in separate containers.
+  After successful scans, builds the image and tags it using the highest Git
+  version-name tag, or `0` when no Git tags exist, plus `latest`.
+  Trivy scans the built image for vulnerabilities before publishing both tags to
+  Docker Hub on default-branch or Git-tag runs. Pull requests never publish images.
 
 ## Working conventions
 
