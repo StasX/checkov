@@ -34,14 +34,17 @@ jobs:
           echo "REPORT_DIR=$REPORT_DIR" >> "$GITHUB_ENV"
 
       - name: Check Dockerfile with Hadolint
+        id: hadolint
         run: |
           docker run --rm \
             --mount "type=bind,source=${{ github.workspace }},target=/workspace,readonly" \
             --workdir /workspace \
             --entrypoint /bin/hadolint \
-            hadolint/hadolint:v2.15.1 Dockerfile 2>&1 | tee "$REPORT_DIR/hadolint.log"
+            hadolint/hadolint:v2.15.1 --format json Dockerfile \
+            2> >(tee "$REPORT_DIR/hadolint.log" >&2) | tee "$REPORT_DIR/hadolint.json"
 
       - name: Check Dockerfile with Checkov
+        id: checkov
         if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
         run: |
           docker run --rm \
@@ -49,10 +52,11 @@ jobs:
             --workdir /workspace \
             --entrypoint checkov \
             ghcr.io/bridgecrewio/checkov:3.4.3 \
-            --file Dockerfile --framework dockerfile --skip-download --compact \
-            2>&1 | tee "$REPORT_DIR/checkov.log"
+            --file Dockerfile --framework dockerfile --skip-download --output json \
+            2> >(tee "$REPORT_DIR/checkov.log" >&2) | tee "$REPORT_DIR/checkov.json"
 
       - name: Check Dockerfile with Semgrep
+        id: semgrep
         if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
         run: |
           docker run --rm \
@@ -60,21 +64,23 @@ jobs:
             --workdir /workspace \
             --entrypoint semgrep \
             semgrep/semgrep:1.183.0 \
-            scan --config p/dockerfile --error --strict --metrics=off Dockerfile \
-            2>&1 | tee "$REPORT_DIR/semgrep.log"
+            scan --config p/dockerfile --error --strict --metrics=off --json Dockerfile \
+            2> >(tee "$REPORT_DIR/semgrep.log" >&2) | tee "$REPORT_DIR/semgrep.json"
 
       - name: Check Dockerfile with Trivy
+        id: trivy_dockerfile
         if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
         run: |
           docker run --rm \
             --mount "type=bind,source=${{ github.workspace }}/Dockerfile,target=/scan/Dockerfile,readonly" \
             aquasec/trivy:0.76.1 \
-            config --exit-code 1 --misconfig-scanners dockerfile /scan \
-            2>&1 | tee "$REPORT_DIR/trivy-dockerfile.log"
+            config --exit-code 1 --misconfig-scanners dockerfile --format json /scan \
+            2> >(tee "$REPORT_DIR/trivy-dockerfile.log" >&2) | tee "$REPORT_DIR/trivy-dockerfile.json"
 
       - name: Build Docker image
+        id: build
         run: |
-          docker build --pull --tag checkov:build \
+          docker build --pull --no-cache --tag checkov:build \
             --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
             --label "org.opencontainers.image.revision=$GITHUB_SHA" . \
             2>&1 | tee "$REPORT_DIR/build.log"
@@ -96,12 +102,13 @@ jobs:
           docker image inspect checkov:build > "$REPORT_DIR/image-metadata.json"
 
       - name: Scan Docker image with Trivy
+        id: trivy_image
         run: |
           docker run --rm \
             --mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock \
             aquasec/trivy:0.76.1 \
-            image --image-src docker --scanners vuln --exit-code 1 checkov:build \
-            2>&1 | tee "$REPORT_DIR/trivy-image.log"
+            image --image-src docker --scanners vuln --exit-code 1 --format json checkov:build \
+            2> >(tee "$REPORT_DIR/trivy-image.log" >&2) | tee "$REPORT_DIR/trivy-image.json"
 
       - name: Log in to Docker Hub
         if: >-
@@ -134,11 +141,58 @@ jobs:
           docker push "$IMAGE_NAME:latest"
           echo "Published: $IMAGE_NAME:$IMAGE_VERSION and $IMAGE_NAME:latest" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload scan reports and build artifacts
-        if: ${{ always() && steps.checkout.outcome == 'success' }}
+      - name: Upload Hadolint reports
+        if: ${{ always() && steps.hadolint.outcome != 'skipped' && steps.checkout.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: hadolint-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/checkov-reports/hadolint.*
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload Checkov reports
+        if: ${{ always() && steps.checkov.outcome != 'skipped' && steps.checkout.outcome == 'success' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: checkov-reports-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/checkov-reports/
+          path: ${{ runner.temp }}/checkov-reports/checkov.*
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload Semgrep reports
+        if: ${{ always() && steps.semgrep.outcome != 'skipped' && steps.checkout.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: semgrep-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/checkov-reports/semgrep.*
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload Trivy Dockerfile reports
+        if: ${{ always() && steps.trivy_dockerfile.outcome != 'skipped' && steps.checkout.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: trivy-dockerfile-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/checkov-reports/trivy-dockerfile.*
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload Trivy image reports
+        if: ${{ always() && steps.trivy_image.outcome != 'skipped' && steps.checkout.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: trivy-image-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/checkov-reports/trivy-image.*
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload build artifacts
+        if: ${{ always() && steps.build.outcome != 'skipped' && steps.checkout.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: build-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/checkov-reports/build.log
+            ${{ runner.temp }}/checkov-reports/image-metadata.json
           retention-days: 14
           if-no-files-found: warn

@@ -13,6 +13,13 @@ This project is focused on Checkov only.
 | Health check | Runs `checkov --version` every 30 seconds |
 
 Checkov is pinned in `requirements.txt`; transitive dependencies are not locked.
+The build upgrades installed Debian packages and pip to `26.3` in system Python and
+Checkov's virtual environment. Python dependencies
+are upgraded to the newest versions permitted by Checkov's dependency constraints.
+Checkov itself stays at the version in `requirements.txt`. Available upgrades
+do not necessarily fix every reported vulnerability.
+CI uses `--pull --no-cache` to prevent cached layers from skipping the upgrade
+commands. Setuptools and wheel are not explicitly installed.
 Its virtual environment is not on `PATH`, so examples use absolute paths. The
 image inherits the Python base image's default command.
 
@@ -26,7 +33,7 @@ Docker must be installed and running with Linux container support. Building
 requires access to the base image registry and Python package index.
 
 ```sh
-docker build -t checkov:dev .
+docker build --pull --no-cache -t checkov:dev .
 docker run --rm checkov:dev python --version
 docker run --rm checkov:dev /tmp/checkov-venv/bin/pip check
 docker run --rm checkov:dev /tmp/checkov-venv/bin/checkov --version
@@ -52,11 +59,21 @@ Later scanners run even when an earlier scanner fails, provided checkout
 succeeded and the run was not cancelled. Findings or scanner errors fail the
 workflow. No checks are skipped or suppressed.
 
-Download `checkov-reports-<run-id>-<attempt>` from the run's **Artifacts** section.
-It is retained for 14 days and contains text logs for Hadolint, Checkov, Semgrep,
-the Trivy Dockerfile scan, and (when reached) the image build and Trivy image
-scan. Built-image metadata is included as `image-metadata.json`. Skipped steps
-have no report. Credentials and Docker login output are not included.
+Each scanner has its own artifact in the run's **Artifacts** section, retained
+for 14 days. Names end with `<run-id>-<attempt>`:
+
+| Artifact prefix | Contents |
+| --- | --- |
+| `hadolint-reports` | `hadolint.json` and diagnostic log |
+| `checkov-reports` | `checkov.json` and diagnostic log |
+| `semgrep-reports` | `semgrep.json` and diagnostic log |
+| `trivy-dockerfile-reports` | `trivy-dockerfile.json` and diagnostic log |
+| `trivy-image-reports` | `trivy-image.json` and diagnostic log |
+| `build-reports` | Build log and image metadata, when available |
+
+Passing scans still generate JSON reports, even with zero findings. Reports are
+uploaded after failures too. Skipped scans have no artifact. Credentials and
+Docker login output are not included.
 
 Logs remain visible in the Actions console. Bash `pipefail` preserves scanner
 and build failures when output is copied into artifact files with `tee`.

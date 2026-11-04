@@ -21,7 +21,8 @@ not a web application or a service.
   version-name tag, or `0` when no Git tags exist, plus `latest`.
   Trivy scans the built image for vulnerabilities before publishing both tags to
   Docker Hub on default-branch or Git-tag runs. Pull requests never publish images.
-  Uploads available scanner logs, build log, and image metadata even on failures.
+  Uploads separate JSON reports and diagnostic logs for each scanner, including
+  passing scans and failures. Build log and image metadata have their own artifact.
 
 ## Working conventions
 
@@ -42,7 +43,7 @@ For documentation-only changes, check links, command consistency, and whitespace
 For Docker or dependency changes, build and smoke-test the affected tools:
 
 ```sh
-docker build -t checkov:dev .
+docker build --pull --no-cache -t checkov:dev .
 docker run --rm checkov:dev python --version
 docker run --rm checkov:dev /tmp/checkov-venv/bin/pip check
 docker run --rm checkov:dev /tmp/checkov-venv/bin/checkov --version
