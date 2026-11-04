@@ -1,0 +1,40 @@
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Local secrets and credentials
+.env
+.env.*
+!.env.example
+.aws/
+*.pem
+*.key
+
+# Local Codex state (shared instructions live in AGENTS.md)
+.codex/
+AGENTS.override.md
+
+# Local Claude Code settings and personal instructions
+.claude/settings.local.json
+CLAUDE.local.md
+
+# Generated scan output
+reports/
+scan-results/
+.coverage
+htmlcov/
+
+# Editor and OS files
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
