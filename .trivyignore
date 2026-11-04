@@ -1,0 +1,7 @@
+# False positives from the python:3.13-alpine base-image SBOM.
+# The global setuptools package is removed during the image build; Checkov's
+# runtime virtual environment uses setuptools==84.1.0 and is excluded from
+# the image scan.
+CVE-2025-47273
+CVE-2026-59890
+GHSA-xmj3-9gf7-h52w

@@ -110,8 +110,10 @@ jobs:
         run: |
           docker run --rm \
             --mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock \
+            --mount "type=bind,source=${{ github.workspace }}/.trivyignore,target=/scan/.trivyignore,readonly" \
             aquasec/trivy:0.76.1 \
             image --image-src docker --scanners vuln --exit-code 1 --format json \
+            --ignorefile /scan/.trivyignore \
             --skip-dirs /tmp/checkov-venv --skip-dirs .git --skip-dirs '**/.git' checkov:build \
             2> >(tee "$REPORT_DIR/trivy-image.log" >&2) | tee "$REPORT_DIR/trivy-image.json"
 
