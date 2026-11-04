@@ -57,7 +57,9 @@ manual runs in this order:
 
 Later scanners run even when an earlier scanner fails, provided checkout
 succeeded and the run was not cancelled. Findings or scanner errors fail the
-workflow. No checks are skipped or suppressed.
+workflow. The Trivy image scan excludes `/tmp/checkov-venv` and `.git`
+directories (including nested ones) as requested;
+Checkov and its Python dependencies in that environment are outside its coverage.
 
 Each scanner has its own artifact in the run's **Artifacts** section, retained
 for 14 days. Names end with `<run-id>-<attempt>`:
@@ -83,7 +85,8 @@ uses LF line endings, enforced by `.gitattributes`, for consistent parsing.
 
 Each scanner runs in a separate container; the project image still contains only
 Checkov. Trivy first scans Dockerfile misconfigurations and later scans the built
-image for vulnerabilities at all severities, including those without fixes.
+image outside `/tmp/checkov-venv` for vulnerabilities at all severities,
+including those without fixes.
 Image vulnerabilities or scanner errors block publishing.
 Semgrep downloads its registry rules and Trivy may download updated checks, so
 these scans require network access and rules may change independently of tool

@@ -107,7 +107,8 @@ jobs:
           docker run --rm \
             --mount type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock \
             aquasec/trivy:0.76.1 \
-            image --image-src docker --scanners vuln --exit-code 1 --format json checkov:build \
+            image --image-src docker --scanners vuln --exit-code 1 --format json \
+            --skip-dirs /tmp/checkov-venv --skip-dirs .git --skip-dirs '**/.git' checkov:build \
             2> >(tee "$REPORT_DIR/trivy-image.log" >&2) | tee "$REPORT_DIR/trivy-image.json"
 
       - name: Log in to Docker Hub
