@@ -180,3 +180,7 @@ the shared guidance, not a Claude-style automatic import.
 
 - Lock transitive dependencies for reproducible builds.
 - Make tool commands available on `PATH`.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
